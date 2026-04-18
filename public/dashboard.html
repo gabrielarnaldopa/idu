@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedAlert · Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-2: #111820;
+    --panel: #151d26;
+    --panel-2: #1a2330;
+    --line: #1f2a36;
+    --line-2: #2a3a4c;
+    --text: #e6edf3;
+    --muted: #7a8a99;
+    --muted-2: #4a5968;
+
+    /* Colores por tipo */
+    --c-emergencia: #ff2d2d;
+    --c-reanimacion: #ff4da6;
+    --c-urgente: #ffa500;
+    --c-atencion: #ffd700;
+    --c-consultas: #00d9a5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    overflow: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ========== LAYOUT ========== */
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  /* ========== HEADER ========== */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.75rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: var(--c-emergencia);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,45,45,0.6); }
+    50% { box-shadow: 0 0 0 10px rgba(255,45,45,0); }
+  }
+  .logo-text {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  .logo-text em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--c-emergencia);
+  }
+  .divider {
+    width: 1px;
+    height: 24px;
+    background: var(--line-2);
+  }
+  .status {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--c-consultas);
+  }
+  .status.offline .status-dot { background: var(--muted); }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .clock {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .user-info {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .user-info strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .logout-btn {
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--muted);
+    padding: 0.4rem 0.9rem;
+    font-family: inherit;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .logout-btn:hover {
+    border-color: var(--c-emergencia);
+    color: var(--c-emergencia);
+  }
+
+  /* ========== MAIN ========== */
+  .main {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    overflow: hidden;
+  }
+
+  /* ========== SIDEBAR ========== */
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 1.5rem 1rem;
+    overflow-y: auto;
+  }
+  .sidebar h3 {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+  }
+  .filter-list {
+    list-style: none;
+    margin-bottom: 1.5rem;
+  }
+  .filter-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0.75rem;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+  .filter-item:hover {
+    background: var(--panel-2);
+  }
+  .filter-item.active {
+    background: var(--panel-2);
+    border-left-color: var(--filter-color, var(--text));
+  }
+  .filter-item-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+  }
+  .filter-item-swatch {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    background: var(--filter-color, var(--muted));
+  }
+  .filter-count {
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 24px;
+    text-align: center;
+    font-weight: 600;
+  }
+  .filter-item.active .filter-count {
+    color: var(--filter-color, var(--text));
+  }
+
+  .stats-mini {
+    padding: 1rem 0.5rem;
+    border-top: 1px solid var(--line);
+    margin-top: 0.5rem;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    padding: 0.35rem 0;
+    color: var(--muted);
+  }
+  .stat-row strong {
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ========== CONTENT ========== */
+  .content {
+    overflow-y: auto;
+    padding: 1.5rem;
+    position: relative;
+  }
+  .content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .content-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.75rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  .content-title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--c-emergencia);
+  }
+  .content-sub {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.25rem;
+    letter-spacing: 0.05em;
+  }
+
+  .search-box {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 0.6rem 1rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    width: 280px;
+    outline: none;
+  }
+  .search-box:focus { border-color: var(--c-consultas); }
+
+  /* ========== ALERTAS GRID ========== */
+  .alerts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1rem;
+  }
+  .alert-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--card-color, var(--muted));
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    animation: slideIn 0.4s ease-out;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .alert-card:hover {
+    background: var(--panel-2);
+    transform: translateX(2px);
+  }
+  .alert-card.new-alert {
+    animation: flashNew 1.2s ease-out;
+  }
+  @keyframes flashNew {
+    0% { background: var(--card-color); transform: scale(1.01); }
+    100% { background: var(--panel); transform: scale(1); }
+  }
+  .alert-card.status-resuelta {
+    opacity: 0.45;
+  }
+  .alert-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  .alert-type {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--card-color);
+    font-weight: 700;
+  }
+  .alert-time {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .alert-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+  .alert-patient {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .alert-patient strong {
+    color: var(--text);
+  }
+  .alert-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin-bottom: 0.75rem;
+  }
+  .alert-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--line);
+  }
+  .alert-status {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    background: var(--bg);
+  }
+  .alert-status.pendiente { color: var(--c-urgente); }
+  .alert-status.en_atencion { color: var(--c-consultas); }
+  .alert-status.resuelta { color: var(--muted); }
+  .alert-id {
+    font-size: 0.65rem;
+    color: var(--muted-2);
+  }
+
+  /* ========== EMPTY STATE ========== */
+  .empty {
+    grid-column: 1 / -1;
+    padding: 5rem 2rem;
+    text-align: center;
+    color: var(--muted);
+  }
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.4;
+  }
+  .empty-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+  .empty-text {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  /* ========== MODAL ========== */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,14,20,0.85);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--modal-color, var(--text));
+    max-width: 640px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 2rem 2.25rem;
+    animation: modalIn 0.25s ease-out;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal-type {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--modal-color);
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.65rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .modal-close {
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--muted);
+    width: 32px; height: 32px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .modal-close:hover {
+    border-color: var(--c-emergencia);
+    color: var(--c-emergencia);
+  }
+  .spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .spec {
+    padding-bottom: 0.5rem;
+  }
+  .spec-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+  .spec-val {
+    font-size: 0.9rem;
+    color: var(--text);
+    word-break: break-word;
+  }
+  .spec.full { grid-column: 1 / -1; }
+  .spec-val pre {
+    background: var(--bg-2);
+    padding: 0.75rem;
+    font-size: 0.75rem;
+    white-space: pre-wrap;
+    border-left: 2px solid var(--modal-color);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .modal-actions button {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .modal-actions button:hover { background: var(--panel-2); }
+  .modal-actions .btn-attend { border-color: var(--c-consultas); color: var(--c-consultas); }
+  .modal-actions .btn-resolve { border-color: var(--c-atencion); color: var(--c-atencion); }
+  .modal-actions .btn-delete { border-color: var(--c-emergencia); color: var(--c-emergencia); }
+
+  /* ========== TOAST ========== */
+  .toast-area {
+    position: fixed;
+    top: 5rem;
+    right: 1.5rem;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .toast {
+    background: var(--panel);
+    border-left: 4px solid var(--toast-color, var(--text));
+    padding: 0.85rem 1.15rem;
+    min-width: 280px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: toastIn 0.3s ease-out;
+    cursor: pointer;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .toast-type {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--toast-color);
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+  .toast-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  /* ========== SCROLLBAR ========== */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .search-box { width: 180px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <div class="logo-dot"></div>
+        <div class="logo-text">Med<em>Alert</em></div>
+      </div>
+      <div class="divider"></div>
+      <div class="status" id="wsStatus">
+        <div class="status-dot"></div>
+        <span id="wsStatusText">En línea</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="divider"></div>
+      <div class="user-info">Sesión: <strong id="userLabel">—</strong></div>
+      <button class="logout-btn" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <h3>Categorías</h3>
+      <ul class="filter-list" id="filterList">
+        <li class="filter-item active" data-filter="all">
+          <span class="filter-item-label">
+            <span class="filter-item-swatch" style="background: var(--text)"></span>
+            Todas
+          </span>
+          <span class="filter-count" id="count-all">0</span>
+        </li>
+        <li class="filter-item" data-filter="emergencia" style="--filter-color: var(--c-emergencia)">
+          <span class="filter-item-label">
+            <span class="filter-item-swatch"></span>
+            Emergencia
+          </span>
+          <span class="filter-count" id="count-emergencia">0</span>
+        </li>
+        <li class="filter-item" data-filter="reanimacion" style="--filter-color: var(--c-reanimacion)">
+          <span class="filter-item-label">
+            <span class="filter-item-swatch"></span>
+            Reanimación
+          </span>
+          <span class="filter-count" id="count-reanimacion">0</span>
+        </li>
+        <li class="filter-item" data-filter="urgente" style="--filter-color: var(--c-urgente)">
+          <span class="filter-item-label">
+            <span class="filter-item-swatch"></span>
+            Urgente
+          </span>
+          <span class="filter-count" id="count-urgente">0</span>
+        </li>
+        <li class="filter-item" data-filter="atencion_necesaria" style="--filter-color: var(--c-atencion)">
+          <span class="filter-item-label">
+            <span class="filter-item-swatch"></span>
+            Atención necesaria
+          </span>
+          <span class="filter-count" id="count-atencion_necesaria">0</span>
+        </li>
+        <li class="filter-item" data-filter="consultas" style="--filter-color: var(--c-consultas)">
+          <span class="filter-item-label">
+            <span class="filter-item-swatch"></span>
+            Consultas
+          </span>
+          <span class="filter-count" id="count-consultas">0</span>
+        </li>
+      </ul>
+
+      <h3>Estado</h3>
+      <ul class="filter-list" id="statusList">
+        <li class="filter-item" data-status="all"><span class="filter-item-label">Todos</span><span class="filter-count" id="sc-all">0</span></li>
+        <li class="filter-item active" data-status="pendiente"><span class="filter-item-label">Pendientes</span><span class="filter-count" id="sc-pendiente">0</span></li>
+        <li class="filter-item" data-status="en_atencion"><span class="filter-item-label">En atención</span><span class="filter-count" id="sc-en_atencion">0</span></li>
+        <li class="filter-item" data-status="resuelta"><span class="filter-item-label">Resueltas</span><span class="filter-count" id="sc-resuelta">0</span></li>
+      </ul>
+
+      <div class="stats-mini">
+        <div class="stat-row"><span>Total</span><strong id="total-all">0</strong></div>
+        <div class="stat-row"><span>Últimas 24h</span><strong id="total-24h">0</strong></div>
+        <div class="stat-row"><span>Pendientes</span><strong id="total-pend">0</strong></div>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="content">
+      <div class="content-header">
+        <div>
+          <div class="content-title">Centro de <em>alertas</em></div>
+          <div class="content-sub" id="contentSub">Mostrando todas las alertas pendientes</div>
+        </div>
+        <input type="text" class="search-box" id="search" placeholder="Buscar paciente, ubicación...">
+      </div>
+
+      <div class="alerts-grid" id="alertsGrid">
+        <div class="empty">
+          <div class="empty-icon">◎</div>
+          <div class="empty-title">Sin alertas</div>
+          <div class="empty-text">No hay alertas que coincidan con el filtro actual. Las nuevas alertas enviadas por n8n aparecerán aquí en tiempo real.</div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-type" id="mType">—</div>
+        <div class="modal-title" id="mTitle">—</div>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="spec-grid" id="specGrid"></div>
+    <div class="modal-actions">
+      <button class="btn-attend" id="btnAttend">Marcar en atención</button>
+      <button class="btn-resolve" id="btnResolve">Marcar resuelta</button>
+      <button class="btn-delete" id="btnDelete">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-area" id="toasts"></div>
+
+<script>
+  // ==============================================
+  // Configuración
+  // ==============================================
+  const TYPE_META = {
+    emergencia:         { color: 'var(--c-emergencia)',  label: 'EMERGENCIA',         sound: true  },
+    reanimacion:        { color: 'var(--c-reanimacion)', label: 'REANIMACIÓN',        sound: true  },
+    urgente:            { color: 'var(--c-urgente)',     label: 'URGENTE',            sound: true  },
+    atencion_necesaria: { color: 'var(--c-atencion)',    label: 'ATENCIÓN NECESARIA', sound: false },
+    consultas:          { color: 'var(--c-consultas)',   label: 'CONSULTA',           sound: false }
+  };
+
+  let alerts = [];
+  let filterType = 'all';
+  let filterStatus = 'pendiente';
+  let searchTerm = '';
+  let currentAlert = null;
+
+  // ==============================================
+  // Inicialización
+  // ==============================================
+  (async function init() {
+    try {
+      const meRes = await fetch('/api/me');
+      if (!meRes.ok) { location.href = '/'; return; }
+      const me = await meRes.json();
+      document.getElementById('userLabel').textContent = me.username + ' (' + me.role + ')';
+    } catch {
+      location.href = '/'; return;
+    }
+    await loadAlerts();
+    connectWS();
+    startClock();
+    bindEvents();
+  })();
+
+  // ==============================================
+  // Datos
+  // ==============================================
+  async function loadAlerts() {
+    const res = await fetch('/api/alerts');
+    if (res.ok) {
+      alerts = await res.json();
+      render();
+    }
+  }
+
+  // ==============================================
+  // WebSocket
+  // ==============================================
+  function connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${proto}//${location.host}/ws`);
+    const statusEl = document.getElementById('wsStatus');
+    const statusText = document.getElementById('wsStatusText');
+
+    ws.onopen = () => {
+      statusEl.classList.remove('offline');
+      statusText.textContent = 'Conectado';
+    };
+    ws.onclose = () => {
+      statusEl.classList.add('offline');
+      statusText.textContent = 'Reconectando...';
+      setTimeout(connectWS, 3000);
+    };
+    ws.onerror = () => ws.close();
+    ws.onmessage = (ev) => {
+      const data = JSON.parse(ev.data);
+      if (data.event === 'alert_new') {
+        alerts.unshift(data.alert);
+        render(data.alert.id);
+        showToast(data.alert);
+        if (TYPE_META[data.alert.type]?.sound) playBeep(data.alert.type);
+      } else if (data.event === 'alert_updated') {
+        const i = alerts.findIndex(a => a.id === data.alert.id);
+        if (i >= 0) alerts[i] = data.alert;
+        render();
+      } else if (data.event === 'alert_deleted') {
+        alerts = alerts.filter(a => a.id !== data.id);
+        render();
+      }
+    };
+  }
+
+  // ==============================================
+  // Render
+  // ==============================================
+  function render(flashId) {
+    // Contadores por tipo
+    const byType = {};
+    for (const t of Object.keys(TYPE_META)) byType[t] = 0;
+    alerts.forEach(a => { if (byType[a.type] !== undefined) byType[a.type]++; });
+    document.getElementById('count-all').textContent = alerts.length;
+    for (const t of Object.keys(TYPE_META)) {
+      const el = document.getElementById('count-' + t);
+      if (el) el.textContent = byType[t] || 0;
+    }
+
+    // Contadores por estado
+    const byStatus = { pendiente: 0, en_atencion: 0, resuelta: 0 };
+    alerts.forEach(a => { if (byStatus[a.status] !== undefined) byStatus[a.status]++; });
+    document.getElementById('sc-all').textContent = alerts.length;
+    document.getElementById('sc-pendiente').textContent = byStatus.pendiente;
+    document.getElementById('sc-en_atencion').textContent = byStatus.en_atencion;
+    document.getElementById('sc-resuelta').textContent = byStatus.resuelta;
+
+    // Stats
+    const now = Date.now();
+    const last24 = alerts.filter(a => now - new Date(a.created_at + 'Z').getTime() < 86400000).length;
+    document.getElementById('total-all').textContent = alerts.length;
+    document.getElementById('total-24h').textContent = last24;
+    document.getElementById('total-pend').textContent = byStatus.pendiente;
+
+    // Subtítulo
+    const typeLbl = filterType === 'all' ? 'todas las categorías' : TYPE_META[filterType]?.label.toLowerCase();
+    const statusLbl = filterStatus === 'all' ? 'cualquier estado' :
+                     filterStatus === 'pendiente' ? 'pendientes' :
+                     filterStatus === 'en_atencion' ? 'en atención' : 'resueltas';
+    document.getElementById('contentSub').textContent =
+      `Mostrando ${typeLbl} · ${statusLbl}`;
+
+    // Filtrar
+    const filtered = alerts.filter(a => {
+      if (filterType !== 'all' && a.type !== filterType) return false;
+      if (filterStatus !== 'all' && a.status !== filterStatus) return false;
+      if (searchTerm) {
+        const hay = `${a.title} ${a.patient_name || ''} ${a.location || ''} ${a.description || ''}`.toLowerCase();
+        if (!hay.includes(searchTerm.toLowerCase())) return false;
+      }
+      return true;
+    });
+
+    // Render cards
+    const grid = document.getElementById('alertsGrid');
+    if (filtered.length === 0) {
+      grid.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">◎</div>
+          <div class="empty-title">Sin alertas</div>
+          <div class="empty-text">No hay alertas que coincidan con el filtro actual. Las nuevas alertas enviadas por n8n aparecerán aquí en tiempo real.</div>
+        </div>`;
+      return;
+    }
+    grid.innerHTML = filtered.map(a => cardHTML(a, flashId === a.id)).join('');
+    grid.querySelectorAll('.alert-card').forEach(el => {
+      el.addEventListener('click', () => openModal(+el.dataset.id));
+    });
+  }
+
+  function cardHTML(a, flash) {
+    const meta = TYPE_META[a.type] || { color: 'var(--muted)', label: a.type.toUpperCase() };
+    return `
+      <div class="alert-card status-${a.status} ${flash ? 'new-alert' : ''}"
+           style="--card-color: ${meta.color}" data-id="${a.id}">
+        <div class="alert-head">
+          <span class="alert-type">${meta.label}</span>
+          <span class="alert-time">${formatTime(a.created_at)}</span>
+        </div>
+        <div class="alert-title">${escapeHTML(a.title)}</div>
+        ${a.patient_name ? `<div class="alert-patient"><strong>${escapeHTML(a.patient_name)}</strong>${a.patient_age ? ' · ' + escapeHTML(a.patient_age) : ''}${a.location ? ' · ' + escapeHTML(a.location) : ''}</div>` : ''}
+        ${a.description ? `<div class="alert-desc">${escapeHTML(a.description)}</div>` : ''}
+        <div class="alert-foot">
+          <span class="alert-status ${a.status}">${statusLabel(a.status)}</span>
+          <span class="alert-id">#${String(a.id).padStart(4, '0')}</span>
+        </div>
+      </div>`;
+  }
+
+  // ==============================================
+  // Modal
+  // ==============================================
+  function openModal(id) {
+    const a = alerts.find(x => x.id === id);
+    if (!a) return;
+    currentAlert = a;
+    const meta = TYPE_META[a.type] || { color: 'var(--text)', label: a.type };
+    const modal = document.getElementById('modal');
+    modal.style.setProperty('--modal-color', meta.color);
+    document.getElementById('mType').textContent = meta.label;
+    document.getElementById('mTitle').textContent = a.title;
+
+    const specs = [];
+    if (a.patient_name) specs.push({ label: 'Paciente', val: a.patient_name });
+    if (a.patient_age) specs.push({ label: 'Edad', val: a.patient_age });
+    if (a.location) specs.push({ label: 'Ubicación', val: a.location });
+    specs.push({ label: 'Estado', val: statusLabel(a.status) });
+    specs.push({ label: 'Origen', val: a.source || 'n8n' });
+    specs.push({ label: 'Recibida', val: formatFullDate(a.created_at) });
+    if (a.description) specs.push({ label: 'Descripción', val: a.description, full: true });
+    if (a.symptoms) specs.push({ label: 'Síntomas', val: a.symptoms, full: true });
+    if (a.vital_signs) specs.push({ label: 'Signos vitales', val: a.vital_signs, full: true });
+    if (a.metadata) specs.push({
+      label: 'Datos adicionales',
+      val: `<pre>${escapeHTML(typeof a.metadata === 'string' ? a.metadata : JSON.stringify(a.metadata, null, 2))}</pre>`,
+      full: true, html: true
+    });
+
+    document.getElementById('specGrid').innerHTML = specs.map(s => `
+      <div class="spec ${s.full ? 'full' : ''}">
+        <div class="spec-label">${s.label}</div>
+        <div class="spec-val">${s.html ? s.val : escapeHTML(s.val)}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('modalBackdrop').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modalBackdrop').classList.remove('show');
+    currentAlert = null;
+  }
+
+  async function updateStatus(status) {
+    if (!currentAlert) return;
+    await fetch(`/api/alerts/${currentAlert.id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ status })
+    });
+    closeModal();
+  }
+
+  async function deleteAlert() {
+    if (!currentAlert) return;
+    if (!confirm('¿Eliminar esta alerta? Esta acción no se puede deshacer.')) return;
+    await fetch(`/api/alerts/${currentAlert.id}`, { method: 'DELETE' });
+    closeModal();
+  }
+
+  // ==============================================
+  // Toasts y sonido
+  // ==============================================
+  function showToast(alert) {
+    const meta = TYPE_META[alert.type] || { color: 'var(--text)', label: alert.type };
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.style.setProperty('--toast-color', meta.color);
+    el.innerHTML = `
+      <div class="toast-type">Nueva · ${meta.label}</div>
+      <div class="toast-title">${escapeHTML(alert.title)}</div>
+    `;
+    el.onclick = () => { openModal(alert.id); el.remove(); };
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(() => el.remove(), 6000);
+  }
+
+  function playBeep(type) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      const freqs = { emergencia: 880, reanimacion: 1040, urgente: 660 };
+      osc.frequency.value = freqs[type] || 500;
+      gain.gain.value = 0.08;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      setTimeout(() => { osc.stop(); ctx.close(); }, 300);
+    } catch {}
+  }
+
+  // ==============================================
+  // Utilidades
+  // ==============================================
+  function escapeHTML(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function formatTime(iso) {
+    const d = new Date(iso + 'Z');
+    const now = new Date();
+    const diff = (now - d) / 1000;
+    if (diff < 60) return 'ahora';
+    if (diff < 3600) return Math.floor(diff / 60) + 'min';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+  }
+  function formatFullDate(iso) {
+    return new Date(iso + 'Z').toLocaleString('es-ES');
+  }
+  function statusLabel(s) {
+    return ({ pendiente: 'Pendiente', en_atencion: 'En atención', resuelta: 'Resuelta' })[s] || s;
+  }
+
+  // ==============================================
+  // Eventos
+  // ==============================================
+  function bindEvents() {
+    document.getElementById('filterList').addEventListener('click', (e) => {
+      const item = e.target.closest('.filter-item');
+      if (!item) return;
+      document.querySelectorAll('#filterList .filter-item').forEach(x => x.classList.remove('active'));
+      item.classList.add('active');
+      filterType = item.dataset.filter;
+      render();
+    });
+    document.getElementById('statusList').addEventListener('click', (e) => {
+      const item = e.target.closest('.filter-item');
+      if (!item) return;
+      document.querySelectorAll('#statusList .filter-item').forEach(x => x.classList.remove('active'));
+      item.classList.add('active');
+      filterStatus = item.dataset.status;
+      render();
+    });
+    document.getElementById('search').addEventListener('input', (e) => {
+      searchTerm = e.target.value;
+      render();
+    });
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'modalBackdrop') closeModal();
+    });
+    document.getElementById('btnAttend').addEventListener('click', () => updateStatus('en_atencion'));
+    document.getElementById('btnResolve').addEventListener('click', () => updateStatus('resuelta'));
+    document.getElementById('btnDelete').addEventListener('click', deleteAlert);
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/api/logout', { method: 'POST' });
+      location.href = '/';
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+  }
+
+  function startClock() {
+    const el = document.getElementById('clock');
+    const tick = () => {
+      const d = new Date();
+      el.textContent = d.toLocaleTimeString('es-ES', { hour12: false });
+    };
+    tick();
+    setInterval(tick, 1000);
+  }
+</script>
+</body>
+</html>
